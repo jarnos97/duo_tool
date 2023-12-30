@@ -10,6 +10,7 @@ python = "^3.12"
 streamlit = "^1.29.0"
 pandas = "^2.1.4"
 numpy = "^1.26.2"
+loguru = "^0.7.2"
 
 
 [build-system]
