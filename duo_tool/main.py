@@ -1,3 +1,4 @@
+import pandas as pd
 import streamlit as st
 
 from calculations import get_inputs
@@ -22,11 +23,19 @@ def advanced_options():
             'Vul niks in als je niet eerder of later wilt gaan aflossen. Vul anders wederom een maand en jaar in.',
             value=None
         )
+        if start_paying_date:
+            start_paying_date = pd.to_datetime(start_paying_date)
 
         st.write('**6. Veranderende rente**')
         st.write('under development')
 
         st.write('**7. Eenmalige extra aflossing**')
+        st.write("""
+        Add some explanation here. We recalculate the monthly amount that has to be paid from the month after the extra
+        payment is made. This might not reflect reality fully. 
+        Also the new monthly payment is averaged with the old one to give you a better overview. In reality you would 
+        first pay amount 1 and after the extra payment amount 2. Show both amounts?
+        """)
         st.write('under development')
 
         st.write('**8. Maandelijks extra aflossen**')
@@ -57,6 +66,7 @@ def app():
             value='01-2024'
         )
         logger.info(f'{start_date}')
+        start_date = pd.to_datetime(start_date)
 
         st.write("**2. Terugbetalingsregeling**")
         years = st.selectbox(
@@ -81,6 +91,8 @@ def app():
         submitted = st.form_submit_button('Klik om te berekenen..')
         if submitted:
             inputs = get_inputs(years, start_date, original_debt, initial_interest, custom_payment_date)
+
+            # TODO: add if to override the inputs if an extra payment is made
 
             c1, c2, c3 = st.columns(3)
             with c1:
@@ -124,13 +136,6 @@ def app():
 # - Account for income > must calculate the draagkracht
 # - Add a chatbot for questions > would be very interesting for myself.
 
-
-# Calculate some variables
-date_range = 1
-months_left = 1
-interest_range = 1
-current_debt = 1
-legal_monthly_amount = 1  # TODO: add a definition here > from Duo
 
 if __name__ == '__main__':
     app()
