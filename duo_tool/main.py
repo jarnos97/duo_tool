@@ -50,7 +50,12 @@ def app():
     st.set_page_config(layout="wide")
     st.title('DUO Studielening Tool')
 
-    st.write('introductie ... ')
+    st.write("""
+    introductie ... 
+    
+    Disclaimer: deze tool geeft alleen schattingen en is geen financieel advies. Er kunnen geen rechten ontleend worden
+    aan de informatie. Er is geen inflatie meegenomen in de berekeningen. 
+    """)
 
     # with st.expander('Klik hier om de basis tool te verbergen',expanded=True):
     with st.form("basic form"):
