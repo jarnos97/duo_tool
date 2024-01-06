@@ -51,10 +51,11 @@ def app():
     st.title('DUO Studielening Tool')
 
     st.write("""
-    introductie ... 
+    Introductie ... 
     
-    Disclaimer: deze tool geeft alleen schattingen en is geen financieel advies. Er kunnen geen rechten ontleend worden
-    aan de informatie. Er is geen inflatie meegenomen in de berekeningen. 
+    Disclaimer: deze tool geeft alleen schattingen en verleend geen financieel advies. 
+    Er kunnen geen rechten ontleend worden aan de gepresenteerde informatie. 
+    Let op: Er is geen inflatie meegenomen in de berekeningen. 
     """)
 
     # with st.expander('Klik hier om de basis tool te verbergen',expanded=True):
