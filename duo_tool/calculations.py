@@ -8,6 +8,7 @@ Sources:
 - https://www.geld.nl/lenen/service/aflossing-lening-berekenen
 """
 import pandas as pd
+import streamlit as st
 
 from typing import Tuple
 from loguru import logger
@@ -120,7 +121,16 @@ def get_inputs(
         delta = custom_payment_date.to_period('M') - start_date.to_period('M')
         payment_offset = delta.n
         logger.info(f"Payment offset = {payment_offset} months.")
-        assert 0 < payment_offset <= 60, 'Custom payment date must be after start date and no later than 60 months'
+
+        # Check the value for correctness
+        if payment_offset < 0 or payment_offset > 84:
+            st.error(
+                '''
+                De datum moet minstens 1 maand na het begin van de afloopfase zijn, en niet later dan 60 maanden na 
+                het einde van de afloopfase.
+                '''
+            )
+            raise ValueError('Wrong customer date')
 
     # Convert the interest percentage to a rate
     interest_rate = interest_perc / 100

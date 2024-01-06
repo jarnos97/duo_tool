@@ -1,5 +1,6 @@
 import pandas as pd
 import streamlit as st
+import datetime
 
 from calculations import get_inputs
 from loguru import logger
@@ -24,18 +25,19 @@ def advanced_options():
             value=None
         )
         if start_paying_date:
+            # Confirm date format
+            try:
+                datetime.datetime.strptime(start_paying_date, '%m-%Y')
+            except ValueError:
+                st.error("Verkeerde datum. Type je datum als maand-jaar > '01-2026'")
+                raise ValueError('Wrong date format')
+            # Make sure
             start_paying_date = pd.to_datetime(start_paying_date)
 
         st.write('**6. Veranderende rente**')
         st.write('under development')
 
         st.write('**7. Eenmalige extra aflossing**')
-        st.write("""
-        Add some explanation here. We recalculate the monthly amount that has to be paid from the month after the extra
-        payment is made. This might not reflect reality fully. 
-        Also the new monthly payment is averaged with the old one to give you a better overview. In reality you would 
-        first pay amount 1 and after the extra payment amount 2. Show both amounts?
-        """)
         st.write('under development')
 
         st.write('**8. Maandelijks extra aflossen**')
@@ -65,6 +67,8 @@ def app():
             Vul hieronder je gegevens in en druk op 'klik om te berekenen' om de uitslag te zien.
             """
         )
+
+        # Aanloopfase
         st.write("**1. Aanloopfase**")
         start_date = st.text_input(
             "Wanneer begint je aanloopfase? Dit is meestal januari na het jaar van afstuderen. "
@@ -72,8 +76,14 @@ def app():
             value='01-2024'
         )
         logger.info(f'{start_date}')
+        try:
+            datetime.datetime.strptime(start_date, '%m-%Y')
+        except ValueError:
+            st.error("Verkeerde datum. Type je datum als maand-jaar > '01-2026'")
+            raise ValueError('Wrong date format')
         start_date = pd.to_datetime(start_date)
 
+        # Terugbetalingsregels
         st.write("**2. Terugbetalingsregeling**")
         years = st.selectbox(
             "Selecteer je terugbetalingsregeling, in aantal jaren",
@@ -82,14 +92,26 @@ def app():
             help="Verander deze waarde omhoog of omlaag om het effect van de afbetalingstermijn te zien."
         )
 
+        # Rente
         st.write("**3. Rente**")
         initial_interest = st.number_input(
             "Wat is het huidige rente percentage? Bijvoorbeeld 2,56",
             help="Verander deze waarde omhoog of omlaag om het effect op je betaalde rente te zien."
         )
+        if initial_interest < 0:
+            st.error('De rente kan niet negatief zijn.')
+            raise ValueError('Negative interest')
 
+        # Schuld
         st.write("**4. Schuld**")
-        original_debt = st.number_input('Vul je originele schuldbedrag in hele euros in. Bijvoorbeeld 30000', step=5000)
+        original_debt = st.number_input(
+            'Vul je originele schuldbedrag in hele euros in. Bijvoorbeeld 30000',
+            value=10_000,
+            step=5000
+        )
+        if original_debt <= 0:
+            st.error('De schuld moet groter dan 0 zijn.')
+            raise ValueError('Debt too low')
 
         # we add the advanced options here
         custom_payment_date = advanced_options()
@@ -113,7 +135,8 @@ def app():
                     label='**Betaalde rente:**',
                     value=f"€ {inputs['total_interest_paid']:,.2f}",
                     help='Dit is de totale rente die je over je lening betaald. Berekent als het totaal betaalde '
-                         'bedrag min het originele schuldbedrag.'
+                         'bedrag min het originele schuldbedrag. Kleine verschillen met de werkelijkheid kunnen '
+                         'ontstaan door het afronden van getallen.'
                 )
 
             with c3:
