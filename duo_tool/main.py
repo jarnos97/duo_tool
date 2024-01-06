@@ -12,7 +12,7 @@ def advanced_options():
             """
             Met deze uitgebreidere opties heb je meer vrijheid om dingen aan te passen.
             Je kan bijvoorbeeld ervoor kiezen om al eerder of juist later te beginnen met afbetalen, een
-            maandelijkse of eenmalige extra betaling te doen, of te experimenteren met verschillende rentes
+            maandelijkse of eenmalige extra betaling te doen, of te experimenteren met veranderende rentes
             door de tijd.
             """
         )
@@ -55,7 +55,7 @@ def app():
     st.write("""
     Introductie ... 
     
-    Disclaimer: deze tool geeft alleen schattingen en verleend geen financieel advies. 
+    Disclaimer: deze tool geeft alleen schattingen en verleent geen financieel advies. 
     Er kunnen geen rechten ontleend worden aan de gepresenteerde informatie. 
     Let op: Er is geen inflatie meegenomen in de berekeningen. 
     """)
@@ -148,8 +148,10 @@ def app():
             st.write('**Schuld door de tijd:**')
             st.line_chart(
                 inputs['debt_over_time'].rename(columns={'debt': 'schuld', 'month': 'jaar'}),
-                x='jaar', y='schuld', width=800, use_container_width=False
+                x='jaar', y='schuld'
             )
+
+    # TODO: add a call for anyone to add to the tool with the github link.
 
 
 # Desired features:
