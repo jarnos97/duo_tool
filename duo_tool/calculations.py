@@ -8,7 +8,7 @@ Sources:
 - https://www.geld.nl/lenen/service/aflossing-lening-berekenen
 """
 import pandas as pd
-import streamlit as st
+import numpy as np
 
 from typing import Tuple
 from loguru import logger
@@ -101,7 +101,7 @@ def get_inputs(
     start_date: Timestamp,
     original_debt: int,
     interest_perc: float,
-    custom_payment_date: Timestamp = None
+    payment_offset: int
 ) -> dict:
     """
     Gather the debt over time (df), total interest paid and monthly payment based on input.
@@ -110,28 +110,11 @@ def get_inputs(
         start_date: the start date of the aanloopfase
         original_debt: the original debt amount in euros
         interest_perc: the interest percentage
-        custom_payment_date: optional custom payment date in case of paying earlier or later than standard.
+        payment_offset: the number of months after the start date to start paying back the loan.
 
     Returns:
         dict: the debt over time, interest paid, and monthly payment.
     """
-    # If a custom payment date is set, we calculate the number of months after which the person wants to start paying.
-    payment_offset = 24  # The default offset is two years
-    if custom_payment_date:
-        delta = custom_payment_date.to_period('M') - start_date.to_period('M')
-        payment_offset = delta.n
-        logger.info(f"Payment offset = {payment_offset} months.")
-
-        # Check the value for correctness
-        if payment_offset < 0 or payment_offset > 84:
-            st.error(
-                '''
-                De datum moet minstens 1 maand na het begin van de afloopfase zijn, en niet later dan 60 maanden na 
-                het einde van de afloopfase.
-                '''
-            )
-            raise ValueError('Wrong customer date')
-
     # Convert the interest percentage to a rate
     interest_rate = interest_perc / 100
     months = 12 * years
@@ -164,16 +147,9 @@ def one_time_payment(
     years: int,
     start_date: Timestamp,
     original_debt: int,
-    custom_payment_date: Timestamp = None,  # TODO: change order to conform with previous functions
+    payment_offset: int,  # TODO: change order to conform with previous functions
+    current_monthly_payment: float
 ):
-    # If a custom payment date is set, we calculate the number of months after which the person wants to start paying.
-    payment_offset = 24  # The default offset is two years
-    if custom_payment_date:
-        delta = custom_payment_date.to_period('M') - start_date.to_period('M')
-        payment_offset = delta.n
-        assert 0 < payment_offset <= 60, 'Custom payment date must be after start date and no later than 60 months'
-    logger.info(f"Payment offset = {payment_offset} months.")
-
     # Convert the interest percentage to a rate
     interest_rate = interest_perc / 100
 
@@ -184,6 +160,17 @@ def one_time_payment(
         idx = df.loc[df['month'] == payment_date].index[0]
         df = df[:idx + 1].copy()
 
+        # If the remaining hebt is lower than the payment amount, throw error
+        if df['debt'].iloc[idx] < payment_amount:
+            raise ValueError(
+                f'The schuld op de datum van extra aflossing ({df['debt'].iloc[idx]:.2f}) moet hoger dan of gelijk '
+                f'zijn aan het af te lossen bedrag ({payment_amount})'
+            )
+        # If the remaining debt equals the payment amount, there is no need to recalculate.
+        if df['debt'].iloc[idx] == payment_amount:
+            # TODO: in this case we should not recalculate > and the payment finishes earlier than the 35/15 years
+            raise NotImplementedError('to be implemented')
+
         # Subtract/add the extra payment
         df.at[idx, 'debt'] -= payment_amount
         df.at[idx, 'payment'] += payment_amount
@@ -191,6 +178,7 @@ def one_time_payment(
         # Recalculate the rest of the payment
         months_left = (years * 12) - diff_month(payment_date, start_date + pd.DateOffset(months=payment_offset))
         remaining_debt = df['debt'].iloc[-1]
+
         updated_payment, rest_df = payment_phase(
             remaining_debt, interest_rate, months_left, payment_date
         )
@@ -209,10 +197,14 @@ def one_time_payment(
         return {
             'debt_over_time': df,
             'total_interest_paid': interest_paid,
-            'monthly_payment': updated_payment  # TODO: add the old payment - as tuple or average
+            'monthly_payment': round(np.mean([updated_payment, current_monthly_payment]), 2)
         }
 
+    else:
+        raise NotImplementedError('dit werkt nog even niet')
+
     # TODO: continue here. Add the same functionality for when the additional payment is during the aanloopfase
+    # TODO: look into the total interest paid > is this correct. Why does it increase if you make an extra payment later
     # Then implement changes in the dashboard.
 
 
@@ -221,16 +213,18 @@ if __name__ == '__main__':
     y = 35
     i = 2.56
     debt = 30_000
-    custom_date = pd.to_datetime('01-2027')
+    offset = 24  # in months
 
-    out = get_inputs(y, date, debt, i)
+    out = get_inputs(y, date, debt, i, 24)
 
     out2 = one_time_payment(
         inputs=out,
         payment_amount=10_000,
-        payment_date=pd.to_datetime('01-2027'),
+        payment_date=pd.to_datetime('01-2030'),
         interest_perc=i,
         years=y,
         start_date=date,
-        original_debt=debt
+        original_debt=debt,
+        payment_offset=24,
+        current_monthly_payment=out['monthly_payment']
     )
