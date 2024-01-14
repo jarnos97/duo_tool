@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "duo-tool"
+name = "duo_tool"
 version = "0.1.0"
 description = ""
 authors = ["Jarno Smit <51162363+jarnos97@users.noreply.github.com>"]
