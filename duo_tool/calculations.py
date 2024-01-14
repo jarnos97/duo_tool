@@ -149,28 +149,29 @@ def one_time_payment(
     # Convert the interest percentage to a rate
     interest_rate = interest_perc / 100
 
+    # Trim the dataframe until payment date
+    df = inputs["debt_over_time"]
+    idx = df.loc[df["month"] == payment_date].index[0]
+    df = df[: idx + 1].copy()
+
+    # If the remaining debt is lower than the payment amount, throw error
+    if df["debt"].iloc[idx] < payment_amount:
+        raise ValueError(
+            f"De schuld op de datum van extra aflossing ({df['debt'].iloc[idx]:.2f}) moet hoger dan of gelijk "
+            f"zijn aan het af te lossen bedrag ({payment_amount})"
+        )
+
+    # If the remaining debt equals the payment amount, there is no need to recalculate.
+    if df["debt"].iloc[idx] == payment_amount:
+        # TODO: in this case we should not recalculate > and the payment finishes earlier than the 35/15 years
+        raise NotImplementedError("to be implemented")
+
+    # Subtract/add the extra payment
+    df.at[idx, "debt"] -= payment_amount
+    df.at[idx, "payment"] += payment_amount
+
     # If the payment date is after the aanloopfase, we can simply slice the df and recalculate it partially.
     if payment_date > start_date + pd.DateOffset(months=payment_offset - 1):
-        # Trim the dataframe until payment date
-        df = inputs["debt_over_time"]
-        idx = df.loc[df["month"] == payment_date].index[0]
-        df = df[: idx + 1].copy()
-
-        # If the remaining hebt is lower than the payment amount, throw error
-        if df["debt"].iloc[idx] < payment_amount:
-            raise ValueError(
-                f"De schuld op de datum van extra aflossing ({df['debt'].iloc[idx]:.2f}) moet hoger dan of gelijk "
-                f"zijn aan het af te lossen bedrag ({payment_amount})"
-            )
-        # If the remaining debt equals the payment amount, there is no need to recalculate.
-        if df["debt"].iloc[idx] == payment_amount:
-            # TODO: in this case we should not recalculate > and the payment finishes earlier than the 35/15 years
-            raise NotImplementedError("to be implemented")
-
-        # Subtract/add the extra payment
-        df.at[idx, "debt"] -= payment_amount
-        df.at[idx, "payment"] += payment_amount
-
         # Recalculate the rest of the payment
         months_left = (years * 12) - diff_month(payment_date, start_date + pd.DateOffset(months=payment_offset))
         remaining_debt = df["debt"].iloc[-1]
@@ -194,12 +195,34 @@ def one_time_payment(
             "monthly_payment": round(np.mean([updated_payment, current_monthly_payment]), 2),
         }
 
+    # If the payment is during the aanloopfase adapt the aanloopfase and then calculate the payment phase
     else:
-        raise NotImplementedError("dit werkt nog even niet")
+        # Calculate rest of aanloopfase and combine
+        debt_after_aanloopfase, aanloopfase_df = aanloopfase(
+            start_date=payment_date + pd.DateOffset(months=1),  # The month after the additional payment
+            interest_rate=interest_rate,
+            original_debt=df["debt"].iloc[idx],  # The updated debt after payment
+            payment_offset=payment_offset - idx - 1,  # The original offset minus the amount of months that have passed
+        )
+        aanloopfase_df = pd.concat([df, aanloopfase_df], axis=0).reset_index(drop=True)
 
+        # Calculate the payment phase
+        first_payment_date = start_date + pd.DateOffset(months=payment_offset)
+        payment, payment_phase_df = payment_phase(debt_after_aanloopfase, interest_rate, 12 * years, first_payment_date)
+
+        # Combine dataframes
+        df = pd.concat([aanloopfase_df, payment_phase_df], axis=0).reset_index(drop=True)
+
+        # Calculate the total interest paid
+        interest_paid = round(df["payment"].sum() - original_debt, 2)
+
+        return {"debt_over_time": df, "total_interest_paid": interest_paid, "monthly_payment": payment}
+
+    # TODO: check payment phase! The first amount of the payment phase should not equal the last of the aanloopfase!!!
+    # TODO: for the above > for the param debt_after_aanloopfase > we have to increase it with the rent before sending
+    # It to the payment phase!! Both here and in the normal get_inputs!
     # TODO: continue here. Add the same functionality for when the additional payment is during the aanloopfase
     # TODO: look into the total interest paid > is this correct. Why does it increase if you make an extra payment later
-    # Then implement changes in the dashboard.
 
 
 if __name__ == "__main__":
@@ -214,7 +237,7 @@ if __name__ == "__main__":
     out2 = one_time_payment(
         inputs=out,
         payment_amount=10_000,
-        payment_date=pd.to_datetime("01-2030"),
+        payment_date=pd.to_datetime("01-2025"),
         interest_perc=i,
         years=y,
         start_date=date,
