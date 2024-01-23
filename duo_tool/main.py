@@ -5,7 +5,7 @@ import streamlit as st
 from loguru import logger
 from utils import check_amount_format, check_date_format
 
-from duo_tool.calculations import get_inputs, one_time_payment
+from duo_tool.inputs import get_inputs, one_time_payment
 
 
 def option_custom_payment_date() -> pd.Timestamp:
@@ -224,8 +224,8 @@ def app() -> None:
 # [check] Compare different debt amounts
 # [check] start paying directly after study (no aanloopfase)
 # [check] postpone paying
+# [check] one time payment
 # - Fill in different interest rates over time
-# - one time payment
 # - Extra monthly payment (difficult: compare with other tool to check calculations. Takes a whole other approach.)
 # - Account for income > must calculate the draagkracht
 # - Add a chatbot for questions > would be very interesting for myself.

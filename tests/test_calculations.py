@@ -1,6 +1,8 @@
 # import pandas as pd
 #
-# from duo_tool.inputs import get_inputs, monthly_compound, monthly_interest_rate
+# from duo_tool.calculations import PaymentPhase
+# from duo_tool.inputs import get_inputs
+
 #
 #
 # def test_monthly_interest_rate():
@@ -21,16 +23,22 @@
 #     Link: https://duo.nl/particulier/rekenhulp-studiefinanciering.jsp#/nl/terugbetalen/start
 #     We round the number to whole euro's to allow for a few cents' deviation.
 #     """
-#
-#     def test_15_years(self):
-#         assert (
-#             round(
-#                 get_inputs(15, pd.to_datetime("01-2024"), 10_000, 2.95, 24)["monthly_payment"],
-#                 0,
-#             )
-#             == 73
-#         )
-#
+# def __init__(self):
+#     self.
+#     )
+
+# def test_15_years(self):
+#     payment_phase = PaymentPhase(
+#             start_date=pd.to_datetime('01-2024'),
+#             interest_rate=0.0256,
+#             debt=10_00,
+#             months=420
+#     )
+#     assert (
+#         round(payment_phase._monthly_payment(10_000, 0.0295, 24), 0)
+#         == 73
+#     )
+
 #     def test_35_years(self):
 #         assert (
 #             round(
@@ -39,4 +47,4 @@
 #             )
 #             == 38
 #         )
-# TODO: update tests with new set-up!
+# # TODO: update tests with new set-up!

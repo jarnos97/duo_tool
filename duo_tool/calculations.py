@@ -1,5 +1,5 @@
 """
-TODO: add description
+This module contains the code for all basic calculations related to the loan.
 
 Sources:
 - https://duo.nl/particulier/studieschuld-terugbetalen/berekening-maandbedrag.jsp
